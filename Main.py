@@ -79,13 +79,14 @@ if uploaded_file is not None:
 
         max_delta = st.number_input(
             "Laptime range(s)",
+            min_value=0,
             value=0,
             help="Maximum allowed delta from the car's fastest lap. Laps outside this range will be ignored."
         )
         if max_delta == 0:
             max_delta = None
 
-        avg_by_manufacturer = st.checkbox("Manufacturer Average Lap Time")
+        avg_by_manufacturer = st.checkbox("Manufacturer average")
         avg_by_driver = st.checkbox("Individual driver performance")
 
         df["CLASS_clean"] = df["CLASS"].astype(str).str.upper().str.strip()
@@ -177,3 +178,4 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
+
