@@ -2,22 +2,14 @@ import streamlit as st
 import pandas as pd
 import re
 
-# -----------------------------
-# App title
-# -----------------------------
 st.title("WEC/IMSA Pace Analyser")
 
-# -----------------------------
-# File upload
-# -----------------------------
 uploaded_file = st.file_uploader("Upload CSV file", type="csv")
 
 if uploaded_file is not None:
-    # Load CSV
     df = pd.read_csv(uploaded_file, sep=';', engine='python', header=0, dtype=str)
     df.columns = [c.strip() for c in df.columns]
 
-    # Check required columns
     required_cols = ["NUMBER", "LAP_TIME", "CLASS", "CROSSING_FINISH_LINE_IN_PIT", 
                      "MANUFACTURER", "ELAPSED", "DRIVER_NAME", "TEAM", "TOP_SPEED"]
     missing_cols = [c for c in required_cols if c not in df.columns]
@@ -26,9 +18,6 @@ if uploaded_file is not None:
     else:
         df = df[required_cols]
 
-        # -----------------------------
-        # Parse lap times
-        # -----------------------------
         time_re = re.compile(r"(\d+):(\d{2}\.\d+)")
         def parse_time_to_seconds(t):
             if pd.isna(t) or t == '':
@@ -39,9 +28,6 @@ if uploaded_file is not None:
             return int(m.group(1)) * 60 + float(m.group(2))
         df["lap_seconds"] = df["LAP_TIME"].apply(parse_time_to_seconds)
 
-        # -----------------------------
-        # Parse ELAPSED into fractional hours
-        # -----------------------------
         elapsed_re = re.compile(r"(?:(\d+):)?(\d{1,2}):(\d{2}\.\d+)")
         def parse_elapsed_to_hours(t):
             if pd.isna(t) or t == '':
@@ -54,21 +40,12 @@ if uploaded_file is not None:
             seconds = float(m.group(3))
             return hours + (minutes / 60) + (seconds / 3600)
         df["elapsed_hours"] = df["ELAPSED"].apply(parse_elapsed_to_hours)
-
-        # -----------------------------
-        # Ensure TOP_SPEED is numeric
-        # -----------------------------
+        
         df["TOP_SPEED"] = pd.to_numeric(df["TOP_SPEED"], errors='coerce')
 
-        # -----------------------------
-        # Class selection
-        # -----------------------------
         available_classes = df["CLASS"].dropna().unique()
         target_class = st.selectbox("Select car class", options=available_classes)
-
-        # -----------------------------
-        # Cars selection (multi-select in expander)
-        # -----------------------------
+        
         cars_in_class = df[df["CLASS"].str.upper() == str(target_class).upper()]["NUMBER"].dropna().unique()
         cars_in_class_sorted = sorted(cars_in_class, key=lambda x: int(re.sub(r"\D", "", x)))
 
@@ -80,18 +57,11 @@ if uploaded_file is not None:
                 help="Here you can exclude cars from the analysis."
             )
 
-        # Filter df to only selected cars
         df = df[df["NUMBER"].isin(selected_cars)]
 
-        # -----------------------------
-        # Top % Laps slider
-        # -----------------------------
         target_percent = st.slider("Top % laps", 0.1, 0.8, 0.6, 0.05,
                                   help="Lower values will filter only the fastest laps, usually when the car is on newer tyres or low on fuel. Higher values will show a more representative average of longer stints.")
 
-        # -----------------------------
-        # Hour range slider
-        # -----------------------------
         min_hour = df["elapsed_hours"].min()
         max_hour = df["elapsed_hours"].max()
         hour_range = st.slider("Session time window(h)",
@@ -102,12 +72,8 @@ if uploaded_file is not None:
                                format="%.0f",
                                help="Restrict the analysis to a certain portion of the session.")
 
-        # Filter laps by selected hours
         df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
 
-        # -----------------------------
-        # Best lap threshold input
-        # -----------------------------
         max_delta = st.number_input(
             "Laptime range(s)",
             value=0, 
@@ -116,15 +82,9 @@ if uploaded_file is not None:
         if max_delta == 0:
             max_delta = None
 
-        # -----------------------------
-        # Toggle for averages
-        # -----------------------------
         avg_by_manufacturer = st.checkbox("Manufacturer average")
-        avg_by_driver = st.checkbox("Individual driver performance")  # NEW
+        avg_by_driver = st.checkbox("Individual driver performance")
 
-        # -----------------------------
-        # Automatic calculation (no button)
-        # -----------------------------
         df["CLASS_clean"] = df["CLASS"].astype(str).str.upper().str.strip()
         mask_class = df["CLASS_clean"] == str(target_class).upper()
         mask_no_pit = ~(df["CROSSING_FINISH_LINE_IN_PIT"].astype(str).str.upper().str.strip() == "B")
@@ -133,7 +93,6 @@ if uploaded_file is not None:
         results = []
 
         if avg_by_driver:
-            # Process per driver
             unique_drivers = df_class["DRIVER_NAME"].dropna().unique()
             for driver in unique_drivers:
                 subset = df_class[df_class["DRIVER_NAME"] == driver].dropna(subset=["lap_seconds", "TOP_SPEED"])
@@ -169,7 +128,6 @@ if uploaded_file is not None:
                                 "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
 
         elif avg_by_manufacturer:
-            # Process per manufacturer
             unique_mfrs = df_class["MANUFACTURER"].dropna().unique()
             for mfr in unique_mfrs:
                 subset = df_class[df_class["MANUFACTURER"] == mfr].dropna(subset=["lap_seconds", "TOP_SPEED"])
@@ -201,7 +159,6 @@ if uploaded_file is not None:
                                 "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
 
         else:
-            # Process per car
             unique_cars = sorted(df_class["NUMBER"].dropna().unique(), key=lambda x: int(re.sub(r"\D", "", x)))
             for car in unique_cars:
                 subset = df_class[df_class["NUMBER"] == car].dropna(subset=["lap_seconds", "TOP_SPEED"])
@@ -237,21 +194,20 @@ if uploaded_file is not None:
 
         styled_df = pd.DataFrame(results)[[
             "Car", "Team", "Manufacturer", "Driver(s)", "Average", "Laps Used", "Average Top Speed"
-        ]].reset_index(drop=True)  # <-- removes the extra index column
+        ]].reset_index(drop=True)
         
-        # Wider columns via CSS
         st.dataframe(
             styled_df.style.set_table_styles(
                 [
-                    {"selector": "th.col0", "props": [("min-width", "60px")]},   # Car
-                    {"selector": "th.col1", "props": [("min-width", "200px")]},  # Team
-                    {"selector": "th.col2", "props": [("min-width", "120px")]},  # Manufacturer
-                    {"selector": "th.col3", "props": [("min-width", "200px")]},  # Driver(s)
+                    {"selector": "th.col0", "props": [("min-width", "60px")]},
+                    {"selector": "th.col1", "props": [("min-width", "200px")]},
+                    {"selector": "th.col2", "props": [("min-width", "120px")]},
+                    {"selector": "th.col3", "props": [("min-width", "200px")]},
                 ]
             ),
             use_container_width=True
         )
-        st.markdown("---")  # horizontal separator line
+        st.markdown("---")
         
         st.markdown(
             """
@@ -264,6 +220,7 @@ if uploaded_file is not None:
             unsafe_allow_html=True
         )
         
+
 
 
 
