@@ -53,6 +53,4 @@ Important Notes
   - Laps Used
   - Average Top Speed
   
-Disclaimer
-
-This tool provides insight into lap time trends and averages, but should not be taken as a definitive measure of overall car or driver performance. Endurance races include many variables not captured in the dataset, such as tire wear, fuel load, driver fatigue, strategy, and mechanical issues. Use this app as a guide, not as an exact performance predictor.
+Disclaimer: This app should not be used to accurately assess car or driver performance. There are numerous variables in a race that are not reflected in the dataset, such as damage, strategy, weather and so on. It's important to watch the races or read detailed reports to understand the full context behind the results.
