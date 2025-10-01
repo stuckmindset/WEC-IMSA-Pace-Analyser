@@ -60,7 +60,7 @@ if uploaded_file is not None:
         df = df[df["NUMBER"].isin(selected_cars)]
 
         target_percent = st.slider("Top % laps", 0.1, 0.8, 0.6, 0.05,
-                                  help="Lower values will filter only the fastest laps, usually when the car is on newer tyres or low on fuel. Higher values will show a more representative Average Lap Time of longer stints.")
+                                  help="Lower values will filter only the fastest laps, usually when the car is on newer tyres or low on fuel. Higher values will show a more representative average lap time of longer stints.")
 
         min_hour = df["elapsed_hours"].min()
         max_hour = df["elapsed_hours"].max()
@@ -220,6 +220,7 @@ if uploaded_file is not None:
             unsafe_allow_html=True
         )
         
+
 
 
 
