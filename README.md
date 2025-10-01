@@ -1,25 +1,58 @@
 # WEC-IMSA-Pace-Analyser
-WEC/IMSA Pace Analyser
 
-WEC/IMSA Pace Analyzer
 Overview
 
-The WEC/IMSA Pace Analyzer is a Python Streamlit application designed to analyze lap times and performance data from endurance racing events (WEC, IMSA). It helps you quickly evaluate average lap times, top speeds, and driver performance across selected cars, manufacturers, or individual drivers.
+The WEC/IMSA Pace Analyser is a Python Streamlit application designed to analyze lap times and performance data from endurance racing events (WEC, IMSA). It helps you quickly evaluate average lap times, top speeds, and driver performance across selected cars, manufacturers, or individual drivers.
 
-The app processes CSV files containing race telemetry, allowing you to:
+Features
 
-    Filter laps by car class and selected cars…        Car
+- Class Selection: Analyze only a chosen car class.
+- Car Selection: Focus on specific cars within the class.
+- Time Filter: Restrict analysis to laps within a specific race time window.
+- Top % Laps: Compute averages using only the fastest portion of laps.
+- Maximum Delta: Ignore laps that are too far from the fastest lap.
+- Individual Driver Performance: Break down averages by driver.
+- Manufacturer Average: Compute averages grouped by manufacturer.
+- Team & Top Speed: Shows team names and average top speed alongside lap times.
+- Driver(s) Column: Displays driver names if analyzing individual performance; otherwise shows "All".
 
-        Team
+Important Notes
 
-        Manufacturer
+    Approximation Only: The app provides averages based on the available lap data, but it does not capture all race variables. Factors like car damage, pit strategy, traffic, weather, and setup changes can heavily influence pace but are not reflected in the data.
 
-        Average Lap Time
+    CSV Format: Input CSV must contain the following columns:
+    NUMBER, LAP_TIME, CLASS, CROSSING_FINISH_LINE_IN_PIT, MANUFACTURER, ELAPSED, DRIVER_NAME, TEAM, TOP_SPEED
 
-        Laps Used
+    Laps in Pit: Laps crossing the finish line while in the pit are ignored in calculations.
 
-        Average Top Speed
+## Usage
 
+- **Upload a CSV file.** Here's how to get the correct files:
+  - **IMSA:**
+    1. Go to [https://imsa.results.alkamelcloud.com/](https://imsa.results.alkamelcloud.com/)
+    2. Select a Season/Event and then select the RACE folder.
+    3. Choose the last hour of the race.
+    4. Download the Time Cards CSV.
+  - **WEC:**
+    1. Go to [https://fiawec.alkamelsystems.com/](https://fiawec.alkamelsystems.com/)
+    2. Navigate to the Event and then select the RACE folder.
+    3. Choose the last hour.
+    4. Download the Analysis Hour XX CSV file.
+  - **Practice Sessions:**  
+    The app can also process CSVs from practice or qualifying sessions, as long as they follow the same column format. Simply upload the CSV from the session you want to analyze.
+
+- **Select Class and Cars:** Choose the car class and the cars you want to analyze.
+- **Adjust Filters:** Set the time window, top percentage of laps, and maximum delta if needed.
+- **Choose Averages:** Check boxes for Manufacturer Average or Individual Driver Performance.
+- **View Results:** The table displays:
+  - Driver(s)
+  - Car
+  - Team
+  - Manufacturer
+  - Average Lap Time
+  - Laps Used
+  - Average Top Speed
+  
 Disclaimer
 
-This tool provides insight into lap time trends and averages, but should not be taken as a definitive measure of overall car or driver performance. Endurance races include many variables not captured in the dataset, such as tire wear, fuel load, driver fatigue, pit stop strategy, and mechanical issues. Use this app as a guide, not as an exact performance predictor.
+This tool provides insight into lap time trends and averages, but should not be taken as a definitive measure of overall car or driver performance. Endurance races include many variables not captured in the dataset, such as tire wear, fuel load, driver fatigue, strategy, and mechanical issues. Use this app as a guide, not as an exact performance predictor.
