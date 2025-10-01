@@ -92,7 +92,7 @@ if uploaded_file is not None:
         # -----------------------------
         min_hour = df["elapsed_hours"].min()
         max_hour = df["elapsed_hours"].max()
-        hour_range = st.slider("Race Time Window",
+        hour_range = st.slider("Session Time Window",
                                min_value=float(min_hour),
                                max_value=float(max_hour),
                                value=(float(min_hour), float(max_hour)),
@@ -248,5 +248,6 @@ if uploaded_file is not None:
             ),
             use_container_width=True
         )
+
 
 
