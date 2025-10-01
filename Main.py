@@ -76,7 +76,8 @@ if uploaded_file is not None:
             selected_cars = st.multiselect(
                 "Select Cars",
                 options=cars_in_class_sorted,
-                default=cars_in_class_sorted
+                default=cars_in_class_sorted,
+                help="Here you can exclude cars from the analysis."
             )
 
         # Filter df to only selected cars
@@ -85,19 +86,21 @@ if uploaded_file is not None:
         # -----------------------------
         # Top % Laps slider
         # -----------------------------
-        target_percent = st.slider("Top % Laps", 0.1, 0.8, 0.6, 0.05)
+        target_percent = st.slider("Top % laps", 0.1, 0.8, 0.6, 0.05,
+                                  help="Lower values will filter only the fastest laps, usually when the car is on newer tyres or low on fuel. Higher values will show a more representative average of longer stints.")
 
         # -----------------------------
         # Hour range slider
         # -----------------------------
         min_hour = df["elapsed_hours"].min()
         max_hour = df["elapsed_hours"].max()
-        hour_range = st.slider("Session Time Window",
+        hour_range = st.slider("Session time window",
                                min_value=float(min_hour),
                                max_value=float(max_hour),
                                value=(float(min_hour), float(max_hour)),
                                step=0.01,
-                               format="%.0f")
+                               format="%.0f",
+                               help="Restrict the analysis to a certain portion of the session.")
 
         # Filter laps by selected hours
         df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
@@ -106,7 +109,7 @@ if uploaded_file is not None:
         # Best lap threshold input
         # -----------------------------
         max_delta = st.number_input(
-            "Laptime Range",
+            "Laptime range",
             value=0, 
             help="This defines the maximum allowed delta in laptime from the car's fastest lap. Laps outside this range will be ignored."
         )
@@ -116,8 +119,8 @@ if uploaded_file is not None:
         # -----------------------------
         # Toggle for averages
         # -----------------------------
-        avg_by_manufacturer = st.checkbox("Manufacturer Average")
-        avg_by_driver = st.checkbox("Individual Driver Performance")  # NEW
+        avg_by_manufacturer = st.checkbox("Manufacturer average")
+        avg_by_driver = st.checkbox("Individual driver performance")  # NEW
 
         # -----------------------------
         # Automatic calculation (no button)
@@ -248,6 +251,7 @@ if uploaded_file is not None:
             ),
             use_container_width=True
         )
+
 
 
 
