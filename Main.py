@@ -72,7 +72,7 @@ if uploaded_file is not None:
         cars_in_class = df[df["CLASS"].str.upper() == str(target_class).upper()]["NUMBER"].dropna().unique()
         cars_in_class_sorted = sorted(cars_in_class, key=lambda x: int(re.sub(r"\D", "", x)))
 
-        with st.expander("Cars (select which to include)"):
+        with st.expander("Cars"):
             selected_cars = st.multiselect(
                 "Select Cars",
                 options=cars_in_class_sorted,
@@ -233,5 +233,22 @@ if uploaded_file is not None:
                                 "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
 
         # Show results as table
+        
+        styled_df = pd.DataFrame(results)[[
+            "Car", "Team", "Manufacturer", "Driver(s)", "Average", "Laps Used", "Average Top Speed"
+        ]]
+        
+        # Wider columns via CSS
+        st.dataframe(
+            styled_df.style.set_table_styles(
+                [
+                    {"selector": "th.col0", "props": [("min-width", "60px")]},   # Car
+                    {"selector": "th.col1", "props": [("min-width", "200px")]},  # Team
+                    {"selector": "th.col2", "props": [("min-width", "120px")]},  # Manufacturer
+                    {"selector": "th.col3", "props": [("min-width", "200px")]},  # Driver(s)
+                ]
+            ),
+            use_container_width=True
+        )
+                          
 
-        st.table(pd.DataFrame(results)[["Car", "Team", "Manufacturer", "Driver(s)", "Average", "Laps Used", "Average Top Speed"]])                               
