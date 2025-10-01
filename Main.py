@@ -94,7 +94,7 @@ if uploaded_file is not None:
         # -----------------------------
         min_hour = df["elapsed_hours"].min()
         max_hour = df["elapsed_hours"].max()
-        hour_range = st.slider("Session time window",
+        hour_range = st.slider("Session time window(h)",
                                min_value=float(min_hour),
                                max_value=float(max_hour),
                                value=(float(min_hour), float(max_hour)),
@@ -109,7 +109,7 @@ if uploaded_file is not None:
         # Best lap threshold input
         # -----------------------------
         max_delta = st.number_input(
-            "Laptime range",
+            "Laptime range(s)",
             value=0, 
             help="This defines the maximum allowed delta in laptime from the car's fastest lap. Laps outside this range will be ignored."
         )
@@ -251,6 +251,7 @@ if uploaded_file is not None:
             ),
             use_container_width=True
         )
+
 
 
 
