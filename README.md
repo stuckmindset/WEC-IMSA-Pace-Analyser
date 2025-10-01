@@ -2,11 +2,11 @@
 
 Overview
 
-The WEC/IMSA Pace Analyser is a Python Streamlit application designed to analyze lap times and performance data from endurance racing events (WEC, IMSA). It helps you quickly evaluate average lap times, top speeds, and driver performance across selected cars, manufacturers, or individual drivers.
+The WEC/IMSA Pace Analyser is a Python Streamlit application designed to analyse lap times and performance data from endurance racing events (WEC, IMSA). It helps you quickly evaluate average lap times, top speeds, and driver performance across selected cars, manufacturers, or individual drivers.
 
 Features
 
-- Class Selection: Analyze only a chosen car class.
+- Class Selection: analyse only a chosen car class.
 - Car Selection: Focus on specific cars within the class.
 - Time Filter: Restrict analysis to laps within a specific race time window.
 - Top % Laps: Compute averages using only the fastest portion of laps.
@@ -14,7 +14,7 @@ Features
 - Individual Driver Performance: Break down averages by driver.
 - Manufacturer Average: Compute averages grouped by manufacturer.
 - Team & Top Speed: Shows team names and average top speed alongside lap times.
-- Driver(s) Column: Displays driver names if analyzing individual performance; otherwise shows "All".
+- Driver(s) Column: Displays driver names if analysing individual performance; otherwise shows "All".
 
 Important Notes
 
@@ -39,9 +39,9 @@ Important Notes
     3. Choose the last hour.
     4. Download the Analysis Hour XX CSV file.
   - **Practice Sessions:**  
-    The app can also process CSVs from practice or qualifying sessions, as long as they follow the same column format. Simply upload the CSV from the session you want to analyze.
+    The app can also process CSVs from practice or qualifying sessions, as long as they follow the same column format. Simply upload the CSV from the session you want to analyse.
 
-- **Select Class and Cars:** Choose the car class and the cars you want to analyze.
+- **Select Class and Cars:** Choose the car class and the cars you want to analyse.
 - **Adjust Filters:** Set the time window, top percentage of laps, and maximum delta if needed.
 - **Choose Averages:** Check boxes for Manufacturer Average or Individual Driver Performance.
 - **View Results:** The table displays:
