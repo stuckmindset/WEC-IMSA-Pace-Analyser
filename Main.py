@@ -233,4 +233,5 @@ if uploaded_file is not None:
                                 "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
 
         # Show results as table
-        st.table(pd.DataFrame(results)[[""Car", "Team", "Manufacturer", "Driver(s)", "Average", "Laps Used", "Average Top Speed"]])                               
+
+        st.table(pd.DataFrame(results)[["Car", "Team", "Manufacturer", "Driver(s)", "Average", "Laps Used", "Average Top Speed"]])                               
