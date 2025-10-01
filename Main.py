@@ -5,7 +5,7 @@ import re
 # -----------------------------
 # App title
 # -----------------------------
-st.title("WEC/IMSA Pace Analyzer")
+st.title("WEC/IMSA Pace Analyser")
 
 # -----------------------------
 # File upload
@@ -108,7 +108,7 @@ if uploaded_file is not None:
         max_delta = st.number_input(
             "Laptime Range",
             value=0, 
-            help="This defines the maximum allowed delta in laptime from the fastest lap. Laps outside this range will be ignored."
+            help="This defines the maximum allowed delta in laptime from the car's fastest lap. Laps outside this range will be ignored."
         )
         if max_delta == 0:
             max_delta = None
@@ -232,11 +232,9 @@ if uploaded_file is not None:
                 results.append({"Driver(s)": "All", "Car": car, "Team": team, "Manufacturer": manufacturer,
                                 "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
 
-        # Show results as table
-        
         styled_df = pd.DataFrame(results)[[
             "Car", "Team", "Manufacturer", "Driver(s)", "Average", "Laps Used", "Average Top Speed"
-        ]]
+        ]].reset_index(drop=True)  # <-- removes the extra index column
         
         # Wider columns via CSS
         st.dataframe(
@@ -250,5 +248,5 @@ if uploaded_file is not None:
             ),
             use_container_width=True
         )
-                          
+
 
