@@ -60,7 +60,7 @@ if uploaded_file is not None:
         df = df[df["NUMBER"].isin(selected_cars)]
 
         target_percent = st.slider("Top % laps", 0.1, 0.8, 0.6, 0.05,
-                                  help="Lower values will filter only the fastest laps, usually when the car is on newer tyres or low on fuel. Higher values will show a more representative average of longer stints.")
+                                  help="Lower values will filter only the fastest laps, usually when the car is on newer tyres or low on fuel. Higher values will show a more representative Average Lap Time of longer stints.")
 
         min_hour = df["elapsed_hours"].min()
         max_hour = df["elapsed_hours"].max()
@@ -82,7 +82,7 @@ if uploaded_file is not None:
         if max_delta == 0:
             max_delta = None
 
-        avg_by_manufacturer = st.checkbox("Manufacturer average")
+        avg_by_manufacturer = st.checkbox("Manufacturer Average Lap Time")
         avg_by_driver = st.checkbox("Individual driver performance")
 
         df["CLASS_clean"] = df["CLASS"].astype(str).str.upper().str.strip()
@@ -98,7 +98,7 @@ if uploaded_file is not None:
                 subset = df_class[df_class["DRIVER_NAME"] == driver].dropna(subset=["lap_seconds", "TOP_SPEED"])
                 if len(subset) == 0:
                     results.append({"Driver(s)": driver, "Car": "N/A", "Team": "N/A", "Manufacturer": "N/A",
-                                    "Average": "N/A", "Laps Used": 0, "Average Top Speed": "N/A"})
+                                    "Average Lap Time": "N/A", "Valid Laps": 0, "Average Top Speed": "N/A"})
                     continue
 
                 car = subset["NUMBER"].iloc[0]
@@ -110,7 +110,7 @@ if uploaded_file is not None:
                     subset = subset[subset["lap_seconds"] <= best_lap + max_delta]
                 if len(subset) == 0:
                     results.append({"Driver(s)": driver, "Car": car, "Team": team, "Manufacturer": manufacturer,
-                                    "Average": f"N/A (> {max_delta}s)", "Laps Used": 0, "Average Top Speed": "N/A"})
+                                    "Average Lap Time": f"N/A (> {max_delta}s)", "Valid Laps": 0, "Average Top Speed": "N/A"})
                     continue
 
                 sorted_times = subset["lap_seconds"].sort_values().to_list()
@@ -125,7 +125,7 @@ if uploaded_file is not None:
                 avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
 
                 results.append({"Driver(s)": driver, "Car": car, "Team": team, "Manufacturer": manufacturer,
-                                "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
+                                "Average Lap Time": avg_str, "Valid Laps": len(best_times), "Average Top Speed": avg_top_speed_str})
 
         elif avg_by_manufacturer:
             unique_mfrs = df_class["MANUFACTURER"].dropna().unique()
@@ -133,7 +133,7 @@ if uploaded_file is not None:
                 subset = df_class[df_class["MANUFACTURER"] == mfr].dropna(subset=["lap_seconds", "TOP_SPEED"])
                 if len(subset) == 0:
                     results.append({"Driver(s)": "All", "Car": "N/A", "Team": "N/A", "Manufacturer": mfr,
-                                    "Average": "N/A", "Laps Used": 0, "Average Top Speed": "N/A"})
+                                    "Average Lap Time": "N/A", "Valid Laps": 0, "Average Top Speed": "N/A"})
                     continue
 
                 if max_delta is not None:
@@ -141,7 +141,7 @@ if uploaded_file is not None:
                     subset = subset[subset["lap_seconds"] <= best_lap + max_delta]
                 if len(subset) == 0:
                     results.append({"Driver(s)": "All", "Car": "N/A", "Team": "N/A", "Manufacturer": mfr,
-                                    "Average": f"N/A (> {max_delta}s)", "Laps Used": 0, "Average Top Speed": "N/A"})
+                                    "Average Lap Time": f"N/A (> {max_delta}s)", "Valid Laps": 0, "Average Top Speed": "N/A"})
                     continue
 
                 sorted_times = subset["lap_seconds"].sort_values().to_list()
@@ -156,7 +156,7 @@ if uploaded_file is not None:
                 avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
 
                 results.append({"Driver(s)": "All", "Car": "Multiple", "Team": "Multiple", "Manufacturer": mfr,
-                                "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
+                                "Average Lap Time": avg_str, "Valid Laps": len(best_times), "Average Top Speed": avg_top_speed_str})
 
         else:
             unique_cars = sorted(df_class["NUMBER"].dropna().unique(), key=lambda x: int(re.sub(r"\D", "", x)))
@@ -164,7 +164,7 @@ if uploaded_file is not None:
                 subset = df_class[df_class["NUMBER"] == car].dropna(subset=["lap_seconds", "TOP_SPEED"])
                 if len(subset) == 0:
                     results.append({"Driver(s)": "All", "Car": car, "Team": "N/A", "Manufacturer": "N/A",
-                                    "Average": "N/A", "Laps Used": 0, "Average Top Speed": "N/A"})
+                                    "Average Lap Time": "N/A", "Valid Laps": 0, "Average Top Speed": "N/A"})
                     continue
 
                 team = subset["TEAM"].iloc[0]
@@ -175,7 +175,7 @@ if uploaded_file is not None:
                     subset = subset[subset["lap_seconds"] <= best_lap + max_delta]
                 if len(subset) == 0:
                     results.append({"Driver(s)": "All", "Car": car, "Team": team, "Manufacturer": manufacturer,
-                                    "Average": f"N/A (> {max_delta}s)", "Laps Used": 0, "Average Top Speed": "N/A"})
+                                    "Average Lap Time": f"N/A (> {max_delta}s)", "Valid Laps": 0, "Average Top Speed": "N/A"})
                     continue
 
                 sorted_times = subset["lap_seconds"].sort_values().to_list()
@@ -190,10 +190,10 @@ if uploaded_file is not None:
                 avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
 
                 results.append({"Driver(s)": "All", "Car": car, "Team": team, "Manufacturer": manufacturer,
-                                "Average": avg_str, "Laps Used": len(best_times), "Average Top Speed": avg_top_speed_str})
+                                "Average Lap Time": avg_str, "Valid Laps": len(best_times), "Average Top Speed": avg_top_speed_str})
 
         styled_df = pd.DataFrame(results)[[
-            "Car", "Team", "Manufacturer", "Driver(s)", "Average", "Laps Used", "Average Top Speed"
+            "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed"
         ]].reset_index(drop=True)
         
         st.dataframe(
@@ -220,6 +220,7 @@ if uploaded_file is not None:
             unsafe_allow_html=True
         )
         
+
 
 
 
