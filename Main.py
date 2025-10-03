@@ -112,11 +112,32 @@ if uploaded_file is not None:
         results = []
 
         def process_subset(subset, entity_name, car_name, team_name, manufacturer_name):
-            if max_delta is not None:
-                best_lap = subset["lap_seconds"].min()
-                subset = subset[subset["lap_seconds"] <= best_lap + max_delta]
-
+            # Drop laps without lap_seconds
+            subset = subset.dropna(subset=["lap_seconds"])
+        
             if len(subset) == 0:
+                return {
+                    "Driver(s)": entity_name,
+                    "Car": car_name,
+                    "Team": team_name,
+                    "Manufacturer": manufacturer_name,
+                    "Average Lap Time": "N/A",
+                    "Valid Laps": 0,
+                    "Average Top Speed": "N/A"
+                }
+        
+            # 1️⃣ Take top % laps first
+            sorted_times = subset["lap_seconds"].sort_values().to_list()
+            cutoff = max(1, int(len(sorted_times) * target_percent))
+            best_times_idx = subset["lap_seconds"].sort_values().index[:cutoff]
+            top_percent_subset = subset.loc[best_times_idx]
+        
+            # 2️⃣ Apply max_delta filter if specified
+            if max_delta is not None:
+                best_lap = top_percent_subset["lap_seconds"].min()
+                top_percent_subset = top_percent_subset[top_percent_subset["lap_seconds"] <= best_lap + max_delta]
+        
+            if len(top_percent_subset) == 0:
                 return {
                     "Driver(s)": entity_name,
                     "Car": car_name,
@@ -126,27 +147,23 @@ if uploaded_file is not None:
                     "Valid Laps": 0,
                     "Average Top Speed": "N/A"
                 }
-
-            sorted_times = subset["lap_seconds"].sort_values().to_list()
-            cutoff = max(1, int(len(sorted_times) * target_percent))
-            best_times_idx = subset["lap_seconds"].sort_values().index[:cutoff]
-            best_times = subset.loc[best_times_idx, "lap_seconds"].to_list()
-
-            avg = sum(best_times) / len(best_times)
+        
+            avg = top_percent_subset["lap_seconds"].mean()
             avg_str = f"{int(avg // 60)}:{avg % 60:06.3f}"
-
-            avg_top_speed = subset.loc[best_times_idx, "TOP_SPEED"].mean()
+        
+            avg_top_speed = top_percent_subset["TOP_SPEED"].mean()
             avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
-
+        
             return {
                 "Driver(s)": entity_name,
                 "Car": car_name,
                 "Team": team_name,
                 "Manufacturer": manufacturer_name,
                 "Average Lap Time": avg_str,
-                "Valid Laps": len(best_times),
+                "Valid Laps": len(top_percent_subset),
                 "Average Top Speed": avg_top_speed_str
             }
+
 
         if avg_by_driver:
             for driver in df_class["DRIVER_NAME"].dropna().unique():
@@ -201,3 +218,4 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
+
