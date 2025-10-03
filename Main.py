@@ -149,7 +149,7 @@ if uploaded_file is not None:
 
         # Keep only rows with valid lap_seconds > 0
         df_class = df_class[df_class["lap_seconds"].notna()]
-        df_class = df_class[df_class["lap_seconds"] > 0]
+        df_class = df_class[df_class["lap_seconds"] > 1]
 
         results = []
 
@@ -264,3 +264,4 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
+
