@@ -94,6 +94,7 @@ if uploaded_file is not None:
             "Laptime range(s)",
             min_value=0,
             value=0,
+            step=0.5,
             help="Maximum allowed delta from the car's fastest lap. Laps outside this range will be ignored."
         )
         if max_delta == 0:
@@ -218,4 +219,5 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
+
 
