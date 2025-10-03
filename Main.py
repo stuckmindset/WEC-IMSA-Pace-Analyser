@@ -11,13 +11,15 @@ if uploaded_file is not None:
     df.columns = [c.strip() for c in df.columns]
 
     required_cols = ["NUMBER", "LAP_TIME", "CLASS", "MANUFACTURER", "ELAPSED",
-                     "DRIVER_NAME", "TEAM", "TOP_SPEED"]
+                     "DRIVER_NAME", "TEAM", "TOP_SPEED", "CROSSING_FINISH_LINE_IN_PIT"]
     missing_cols = [c for c in required_cols if c not in df.columns]
+
     if missing_cols:
         st.error(f"Missing required column(s): {', '.join(missing_cols)}")
     else:
         df = df[required_cols]
 
+        # Parse lap times into seconds
         time_re = re.compile(r"(\d+):(\d{2}\.\d+)")
         def parse_time_to_seconds(t):
             if pd.isna(t) or t == '':
@@ -26,8 +28,10 @@ if uploaded_file is not None:
             if not m:
                 return None
             return int(m.group(1)) * 60 + float(m.group(2))
+
         df["lap_seconds"] = df["LAP_TIME"].apply(parse_time_to_seconds)
 
+        # Parse elapsed time into hours
         elapsed_re = re.compile(r"(?:(\d+):)?(\d{1,2}):(\d{2}\.\d+)")
         def parse_elapsed_to_hours(t):
             if pd.isna(t) or t == '':
@@ -39,15 +43,20 @@ if uploaded_file is not None:
             minutes = int(m.group(2))
             seconds = float(m.group(3))
             return hours + (minutes / 60) + (seconds / 3600)
+
         df["elapsed_hours"] = df["ELAPSED"].apply(parse_elapsed_to_hours)
 
+        # Handle top speed (NaN if empty)
         df["TOP_SPEED"] = pd.to_numeric(df["TOP_SPEED"], errors='coerce')
 
+        # Select class
         available_classes = df["CLASS"].dropna().unique()
         target_class = st.selectbox("Select car class", options=available_classes)
 
+        # Cars in class
         cars_in_class = df[df["CLASS"].str.upper() == str(target_class).upper()]["NUMBER"].dropna().unique()
         cars_in_class_sorted = sorted(cars_in_class, key=lambda x: int(re.sub(r"\D", "", x)))
+
         with st.expander("Cars"):
             selected_cars = st.multiselect(
                 "Select Cars",
@@ -58,11 +67,13 @@ if uploaded_file is not None:
 
         df = df[df["NUMBER"].isin(selected_cars)]
 
+        # Top % laps slider
         target_percent = st.slider(
             "Top % laps", 0.1, 0.7, 0.6, 0.05,
             help="Lower values will filter only the fastest laps. Higher values show a more representative stint average."
         )
 
+        # Time window
         min_hour = df["elapsed_hours"].min()
         max_hour = df["elapsed_hours"].max()
         hour_range = st.slider(
@@ -74,41 +85,67 @@ if uploaded_file is not None:
             format="%.0f",
             help="Restrict the analysis to a certain portion of the session."
         )
-
         df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
 
-        max_delta = st.number_input(
-            "Laptime range(s)",
-            min_value=0,
-            value=0,
-            help="Maximum allowed delta from the car's fastest lap. Laps outside this range will be ignored."
+        # Laptime % ranges
+        manuf_delta = st.slider(
+            "Manufacturer laptime filter (% of class best)",
+            min_value=101, max_value=120, value=110,
+            help="Laps must be within this % of the class' fastest lap."
         )
-        if max_delta == 0:
-            max_delta = None
+
+        driver_delta = st.slider(
+            "Driver laptime filter (% of driver's best)",
+            min_value=101, max_value=120, value=105,
+            help="Laps must be within this % of the driver's fastest lap."
+        )
 
         avg_by_manufacturer = st.checkbox("Manufacturer average")
         avg_by_driver = st.checkbox("Individual driver performance")
 
+        # Clean class
         df["CLASS_clean"] = df["CLASS"].astype(str).str.upper().str.strip()
         mask_class = df["CLASS_clean"] == str(target_class).upper()
+
+        # Filter: valid laps only (exclude pit laps "B" and first lap of race)
         df_class = df[mask_class].copy()
-        
+        df_class = df_class[df_class["CROSSING_FINISH_LINE_IN_PIT"].astype(str).str.strip().ne("B")]
+        df_class = df_class[df_class["lap_seconds"].notna()]
+        df_class = df_class[df_class["lap_seconds"] > 0]  # avoid first lap / invalid
+
         results = []
 
-        def process_subset(subset, entity_name, car_name, team_name, manufacturer_name):
-            if max_delta is not None:
-                best_lap = subset["lap_seconds"].min()
-                subset = subset[subset["lap_seconds"] <= best_lap + max_delta]
+        def process_subset(subset, entity_name, car_name, team_name, manufacturer_name, delta_pct, ref="driver"):
             if len(subset) == 0:
                 return {
                     "Driver(s)": entity_name,
                     "Car": car_name,
                     "Team": team_name,
                     "Manufacturer": manufacturer_name,
-                    "Average Lap Time": f"N/A (> {max_delta}s)" if max_delta else "N/A",
+                    "Average Lap Time": "N/A",
                     "Valid Laps": 0,
                     "Average Top Speed": "N/A"
                 }
+
+            if ref == "class":
+                ref_best = df_class["lap_seconds"].min()
+            else:
+                ref_best = subset["lap_seconds"].min()
+
+            cutoff_val = ref_best * (delta_pct / 100.0)
+            subset = subset[subset["lap_seconds"] <= cutoff_val]
+
+            if len(subset) == 0:
+                return {
+                    "Driver(s)": entity_name,
+                    "Car": car_name,
+                    "Team": team_name,
+                    "Manufacturer": manufacturer_name,
+                    "Average Lap Time": f"N/A (> {delta_pct}%)",
+                    "Valid Laps": 0,
+                    "Average Top Speed": "N/A"
+                }
+
             sorted_times = subset["lap_seconds"].sort_values().to_list()
             cutoff = max(1, int(len(sorted_times) * target_percent))
             best_times_idx = subset["lap_seconds"].sort_values().index[:cutoff]
@@ -117,6 +154,7 @@ if uploaded_file is not None:
             avg_str = f"{int(avg // 60)}:{avg % 60:06.3f}"
             avg_top_speed = subset.loc[best_times_idx, "TOP_SPEED"].mean()
             avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
+
             return {
                 "Driver(s)": entity_name,
                 "Car": car_name,
@@ -135,13 +173,15 @@ if uploaded_file is not None:
                 car = subset["NUMBER"].iloc[0]
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
-                results.append(process_subset(subset, driver, car, team, manufacturer))
+                results.append(process_subset(subset, driver, car, team, manufacturer, driver_delta, ref="driver"))
+
         elif avg_by_manufacturer:
             for mfr in df_class["MANUFACTURER"].dropna().unique():
                 subset = df_class[df_class["MANUFACTURER"] == mfr]
                 if len(subset) == 0:
                     continue
-                results.append(process_subset(subset, "All", "Multiple", "Multiple", mfr))
+                results.append(process_subset(subset, "All", "Multiple", "Multiple", mfr, manuf_delta, ref="class"))
+
         else:
             for car in sorted(df_class["NUMBER"].dropna().unique(), key=lambda x: int(re.sub(r"\D", "", x))):
                 subset = df_class[df_class["NUMBER"] == car]
@@ -149,7 +189,7 @@ if uploaded_file is not None:
                     continue
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
-                results.append(process_subset(subset, "All", car, team, manufacturer))
+                results.append(process_subset(subset, "All", car, team, manufacturer, manuf_delta, ref="class"))
 
         styled_df = pd.DataFrame(results)[[
             "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed"
@@ -178,5 +218,3 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
-
-
