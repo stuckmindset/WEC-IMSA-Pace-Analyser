@@ -196,3 +196,110 @@ if uploaded_file is not None:
                     "Car": car_name,
                     "Team": team_name,
                     "Manufacturer": manufacturer_name,
+                    "Average Lap Time": "N/A",
+                    "Valid Laps": 0,
+                    "Average Top Speed": "N/A"
+                }
+
+            # choose reference best: class or subset
+            if ref == "class":
+                # class fastest lap across df_class (already filtered)
+                ref_best = df_class["lap_seconds"].min()
+            else:
+                ref_best = subset["lap_seconds"].min()
+
+            cutoff_val = ref_best * (delta_pct / 100.0)
+            subset = subset[subset["lap_seconds"] <= cutoff_val]
+
+            if len(subset) == 0:
+                return {
+                    "Driver(s)": entity_name,
+                    "Car": car_name,
+                    "Team": team_name,
+                    "Manufacturer": manufacturer_name,
+                    "Average Lap Time": f"N/A (> {delta_pct}%)",
+                    "Valid Laps": 0,
+                    "Average Top Speed": "N/A"
+                }
+
+            # pick top X% of remaining (as before)
+            sorted_times = subset["lap_seconds"].sort_values().to_list()
+            cutoff = max(1, int(len(sorted_times) * target_percent))
+            best_times_idx = subset["lap_seconds"].sort_values().index[:cutoff]
+            best_times = subset.loc[best_times_idx, "lap_seconds"].to_list()
+            avg = sum(best_times) / len(best_times)
+            avg_str = f"{int(avg // 60)}:{avg % 60:06.3f}"
+
+            # top speed average (only for the chosen laps); handle NaN gracefully
+            avg_top_speed = subset.loc[best_times_idx, "TOP_SPEED"].mean()
+            avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
+
+            return {
+                "Driver(s)": entity_name,
+                "Car": car_name,
+                "Team": team_name,
+                "Manufacturer": manufacturer_name,
+                "Average Lap Time": avg_str,
+                "Valid Laps": len(best_times),
+                "Average Top Speed": avg_top_speed_str
+            }
+
+        # -----------------------------
+        # Build results
+        # -----------------------------
+        if avg_by_driver:
+            for driver in df_class["DRIVER_NAME"].dropna().unique():
+                subset = df_class[df_class["DRIVER_NAME"] == driver]
+                if len(subset) == 0:
+                    continue
+                car = subset["NUMBER"].iloc[0]
+                team = subset["TEAM"].iloc[0]
+                manufacturer = subset["MANUFACTURER"].iloc[0]
+                results.append(process_subset(subset, driver, car, team, manufacturer, driver_delta, ref="driver"))
+
+        elif avg_by_manufacturer:
+            for mfr in df_class["MANUFACTURER"].dropna().unique():
+                subset = df_class[df_class["MANUFACTURER"] == mfr]
+                if len(subset) == 0:
+                    continue
+                results.append(process_subset(subset, "All", "Multiple", "Multiple", mfr, manuf_delta, ref="class"))
+
+        else:
+            for car in sorted(df_class["NUMBER"].dropna().unique(), key=lambda x: int(re.sub(r"\D", "", x))):
+                subset = df_class[df_class["NUMBER"] == car]
+                if len(subset) == 0:
+                    continue
+                team = subset["TEAM"].iloc[0]
+                manufacturer = subset["MANUFACTURER"].iloc[0]
+                results.append(process_subset(subset, "All", car, team, manufacturer, manuf_delta, ref="class"))
+
+        # -----------------------------
+        # Display results (no index column, wider Team/Driver columns)
+        # -----------------------------
+        styled_df = pd.DataFrame(results)[[
+            "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed"
+        ]].reset_index(drop=True)
+
+        st.dataframe(
+            styled_df.style.set_table_styles(
+                [
+                    {"selector": "th.col0", "props": [("min-width", "60px")]},
+                    {"selector": "th.col1", "props": [("min-width", "200px")]},
+                    {"selector": "th.col2", "props": [("min-width", "120px")]},
+                    {"selector": "th.col3", "props": [("min-width", "200px")]},
+                ]
+            ),
+            use_container_width=True
+        )
+
+        st.markdown("---")
+        st.markdown(
+            """
+            **Disclaimer**:  
+            *This app should not be used to accurately assess car or driver performance.  
+            There are numerous variables in a race that are not reflected in the dataset,  
+            such as damage, strategy, weather and so on. It's important to watch the races  
+            or read detailed reports to understand the full context behind the results.*
+            """,
+            unsafe_allow_html=True
+        )
