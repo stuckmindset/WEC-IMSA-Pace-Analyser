@@ -73,7 +73,7 @@ if uploaded_file is not None:
         )
 
         # Calculate session time range for slider
-        session_start_hour = max(1, math.floor(df["elapsed_hours"].min()))
+        session_start_hour = max(0, math.floor(df["elapsed_hours"].min()))
         session_end_hour = math.ceil(df["elapsed_hours"].max())
         elapsed_hours_sorted = df["elapsed_hours"].sort_values()
         max_full_hour = math.floor(elapsed_hours_sorted.max())
@@ -213,4 +213,5 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
+
 
