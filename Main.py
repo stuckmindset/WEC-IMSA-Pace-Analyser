@@ -75,15 +75,25 @@ if uploaded_file is not None:
         # Calculate session time range for slider
         session_start_hour = max(1, math.floor(df["elapsed_hours"].min()))
         session_end_hour = math.ceil(df["elapsed_hours"].max())
+        elapsed_hours_sorted = df["elapsed_hours"].sort_values()
+        max_full_hour = math.floor(elapsed_hours_sorted.max())
+        # Count laps beyond next hour
+        laps_beyond_next = sum(elapsed_hours_sorted > (max_full_hour + 1))
+        if laps_beyond_next >= 2:
+            max_elapsed_hour = max_full_hour + 1
+        else:
+            max_elapsed_hour = max_full_hour
+        
         hour_range = st.slider(
             "Session time window (hours)",
             min_value=float(session_start_hour),
-            max_value=float(session_end_hour),
-            value=(float(session_start_hour), float(session_end_hour)),
-            step=0.01,
-            format="%.0f",
+            max_value=float(max_elapsed_hour),
+            value=(float(session_start_hour), float(max_elapsed_hour)),
+            step=0.5,
+            format="%.1f",
             help="Restrict the analysis to a certain portion of the session."
         )
+
 
         df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
 
@@ -203,3 +213,4 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
+
