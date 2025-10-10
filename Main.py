@@ -153,7 +153,7 @@ if uploaded_files:
                     "Team": team_name,
                     "Manufacturer": manufacturer_name,
                     "Average Lap Time": f"N/A (> {max_delta}s)" if max_delta else "N/A",
-                    "Valid Laps": 0,
+                    "Laps In Range": 0,
                     "Average Top Speed": "N/A"
                 }
 
@@ -168,7 +168,7 @@ if uploaded_files:
                 "Team": team_name,
                 "Manufacturer": manufacturer_name,
                 "Average Lap Time": avg_str,
-                "Valid Laps": len(best_times),
+                "Laps In Range": len(best_times),
                 "Average Top Speed": avg_top_speed_str
             }
 
@@ -197,7 +197,7 @@ if uploaded_files:
                 results.append(process_subset(subset, "All", car, team, manufacturer))
 
         styled_df = pd.DataFrame(results)[[
-            "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed"
+            "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Laps In Range", "Average Top Speed"
         ]].reset_index(drop=True)
 
         st.dataframe(styled_df, use_container_width=True)
@@ -213,6 +213,7 @@ if uploaded_files:
             """,
             unsafe_allow_html=True
         )
+
 
 
 
