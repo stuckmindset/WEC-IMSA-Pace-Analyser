@@ -91,8 +91,6 @@ if uploaded_files:
                 max_elapsed_hour = max_full_hour + 1
             else:
                 max_elapsed_hour = max_full_hour
-            if max_elapsed_hour > 6:
-                max_elapsed_hour = 6  # ✅ cap at 6 hours unless more laps recorded
         
             hour_range = st.slider(
                 "Session time window (hours)",
@@ -213,6 +211,7 @@ if uploaded_files:
             """,
             unsafe_allow_html=True
         )
+
 
 
 
