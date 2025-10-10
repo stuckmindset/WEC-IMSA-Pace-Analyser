@@ -106,7 +106,7 @@ if uploaded_files:
         
             df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
         else:
-            st.info("⏱ Time window disabled because multiple CSVs were uploaded (multi-session analysis).")
+            st.info("N/A", help="Time window disabled because multiple sessions were uploaded.")
 
 
         # Laptime delta
@@ -210,4 +210,5 @@ if uploaded_files:
             """,
             unsafe_allow_html=True
         )
+
 
