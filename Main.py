@@ -106,7 +106,10 @@ if uploaded_files:
         
             df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
         else:
-            st.info("N/A", help="Time window disabled because multiple sessions were uploaded.")
+            with st.container():
+                st.markdown("**Session time window (hours)**")
+                st.info("N/A — multiple sessions uploaded. Time window selection disabled.")
+
 
 
         # Laptime delta
@@ -210,5 +213,6 @@ if uploaded_files:
             """,
             unsafe_allow_html=True
         )
+
 
 
