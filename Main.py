@@ -81,29 +81,33 @@ if uploaded_files:
             help="Lower values will filter only the fastest laps. Higher values show a more representative stint average."
         )
 
-        # Calculate session time range
-        session_start_hour = max(0, math.floor(df["elapsed_hours"].min()))
-        elapsed_hours_sorted = df["elapsed_hours"].sort_values()
-        max_full_hour = math.floor(elapsed_hours_sorted.max())
-        laps_beyond_next = sum(elapsed_hours_sorted > (max_full_hour + 1))
-        if laps_beyond_next >= 2:
-            max_elapsed_hour = max_full_hour + 1
+        # Calculate session time range (only if single file)
+        if len(uploaded_files) == 1:
+            session_start_hour = max(0, math.floor(df["elapsed_hours"].min()))
+            elapsed_hours_sorted = df["elapsed_hours"].sort_values()
+            max_full_hour = math.floor(elapsed_hours_sorted.max())
+            laps_beyond_next = sum(elapsed_hours_sorted > (max_full_hour + 1))
+            if laps_beyond_next >= 2:
+                max_elapsed_hour = max_full_hour + 1
+            else:
+                max_elapsed_hour = max_full_hour
+            if max_elapsed_hour > 6:
+                max_elapsed_hour = 6  # ✅ cap at 6 hours unless more laps recorded
+        
+            hour_range = st.slider(
+                "Session time window (hours)",
+                min_value=float(session_start_hour),
+                max_value=float(max_elapsed_hour),
+                value=(float(session_start_hour), float(max_elapsed_hour)),
+                step=0.5,
+                format="%.1f",
+                help="Restrict the analysis to a certain portion of the session."
+            )
+        
+            df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
         else:
-            max_elapsed_hour = max_full_hour
-        if max_elapsed_hour > 6:
-            max_elapsed_hour = 6  # ✅ cap at 6 hours unless more laps recorded
-        hour_range = st.slider(
-            "Session time window (hours)",
-            min_value=float(session_start_hour),
-            max_value=float(max_elapsed_hour),
-            value=(float(session_start_hour), float(max_elapsed_hour)),
-            step=0.5,
-            format="%.1f",
-            help="Restrict the analysis to a certain portion of the session."
-        )
+            st.info("⏱ Time window disabled because multiple CSVs were uploaded (multi-session analysis).")
 
-        # Filter hours
-        df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
 
         # Laptime delta
         max_delta = st.number_input(
@@ -206,3 +210,4 @@ if uploaded_files:
             """,
             unsafe_allow_html=True
         )
+
