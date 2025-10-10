@@ -5,11 +5,20 @@ import math
 
 st.title("WEC/IMSA Pace Analyser")
 
-uploaded_file = st.file_uploader("Upload CSV file", type="csv")
+uploaded_files = st.file_uploader("Upload one or more CSV files", type="csv", accept_multiple_files=True)
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file, sep=';', engine='python', header=0, dtype=str)
-    df.columns = [c.strip() for c in df.columns]
+if uploaded_files:
+    dfs = []
+    for file in uploaded_files:
+        try:
+            df_part = pd.read_csv(file, sep=';', engine='python', header=0, dtype=str)
+            df_part.columns = [c.strip() for c in df_part.columns]
+            dfs.append(df_part)
+        except Exception as e:
+            st.error(f"Failed to read {file.name}: {e}")
+
+    # Merge all CSVs
+    df = pd.concat(dfs, ignore_index=True)
 
     required_cols = [
         "NUMBER", "LAP_TIME", "CLASS", "MANUFACTURER", "ELAPSED",
@@ -46,15 +55,15 @@ if uploaded_file is not None:
             return hours + (minutes / 60) + (seconds / 3600)
         df["elapsed_hours"] = df["ELAPSED"].apply(parse_elapsed_to_hours)
 
-        # Convert TOP_SPEED to numeric
+        # Convert numeric fields
         df["TOP_SPEED"] = pd.to_numeric(df["TOP_SPEED"], errors='coerce')
         df["LAP_NUMBER"] = pd.to_numeric(df["LAP_NUMBER"], errors='coerce')
 
-        # Select target class
+        # Class selector
         available_classes = df["CLASS"].dropna().unique()
         target_class = st.selectbox("Select car class", options=available_classes)
 
-        # Cars selection
+        # Car selection
         cars_in_class = df[df["CLASS"].str.upper() == str(target_class).upper()]["NUMBER"].dropna().unique()
         cars_in_class_sorted = sorted(cars_in_class, key=lambda x: int(re.sub(r"\D", "", x)))
         with st.expander("Cars"):
@@ -72,18 +81,17 @@ if uploaded_file is not None:
             help="Lower values will filter only the fastest laps. Higher values show a more representative stint average."
         )
 
-        # Calculate session time range for slider
+        # Calculate session time range
         session_start_hour = max(0, math.floor(df["elapsed_hours"].min()))
-        session_end_hour = math.ceil(df["elapsed_hours"].max())
         elapsed_hours_sorted = df["elapsed_hours"].sort_values()
         max_full_hour = math.floor(elapsed_hours_sorted.max())
-        # Count laps beyond next hour
         laps_beyond_next = sum(elapsed_hours_sorted > (max_full_hour + 1))
         if laps_beyond_next >= 2:
             max_elapsed_hour = max_full_hour + 1
         else:
             max_elapsed_hour = max_full_hour
-        
+        if max_elapsed_hour > 6:
+            max_elapsed_hour = 6  # ✅ cap at 6 hours unless more laps recorded
         hour_range = st.slider(
             "Session time window (hours)",
             min_value=float(session_start_hour),
@@ -94,7 +102,7 @@ if uploaded_file is not None:
             help="Restrict the analysis to a certain portion of the session."
         )
 
-
+        # Filter hours
         df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
 
         # Laptime delta
@@ -110,7 +118,7 @@ if uploaded_file is not None:
         avg_by_manufacturer = st.checkbox("Manufacturer average")
         avg_by_driver = st.checkbox("Individual driver performance")
 
-        # Filter class, exclude pit-in/out and first lap
+        # Clean class & pit filter
         df["CLASS_clean"] = df["CLASS"].astype(str).str.upper().str.strip()
         mask_class = df["CLASS_clean"] == str(target_class).upper()
         mask_no_pit = ~(df["CROSSING_FINISH_LINE_IN_PIT"].astype(str).str.upper().str.strip() == "B")
@@ -119,15 +127,12 @@ if uploaded_file is not None:
 
         results = []
 
-        # Processing function
         def process_subset(subset, entity_name, car_name, team_name, manufacturer_name):
-            # Keep only top % laps
             subset_sorted = subset.sort_values("lap_seconds")
             cutoff = max(1, int(len(subset_sorted) * target_percent))
             best_times_idx = subset_sorted.index[:cutoff]
             best_times = subset_sorted.loc[best_times_idx, "lap_seconds"].to_list()
 
-            # Apply max_delta AFTER selecting top % laps
             if max_delta is not None and len(best_times) > 0:
                 best_lap = min(best_times)
                 filtered_idx = [i for i in best_times_idx if subset_sorted.loc[i, "lap_seconds"] <= best_lap + max_delta]
@@ -169,14 +174,12 @@ if uploaded_file is not None:
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
                 results.append(process_subset(subset, driver, car, team, manufacturer))
-
         elif avg_by_manufacturer:
             for mfr in df_class["MANUFACTURER"].dropna().unique():
                 subset = df_class[df_class["MANUFACTURER"] == mfr]
                 if len(subset) == 0:
                     continue
                 results.append(process_subset(subset, "All", "Multiple", "Multiple", mfr))
-
         else:
             for car in sorted(df_class["NUMBER"].dropna().unique(), key=lambda x: int(re.sub(r"\D", "", x))):
                 subset = df_class[df_class["NUMBER"] == car]
@@ -190,17 +193,7 @@ if uploaded_file is not None:
             "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed"
         ]].reset_index(drop=True)
 
-        st.dataframe(
-            styled_df.style.set_table_styles(
-                [
-                    {"selector": "th.col0", "props": [("min-width", "60px")]},
-                    {"selector": "th.col1", "props": [("min-width", "200px")]},
-                    {"selector": "th.col2", "props": [("min-width", "120px")]},
-                    {"selector": "th.col3", "props": [("min-width", "200px")]},
-                ]
-            ),
-            use_container_width=True
-        )
+        st.dataframe(styled_df, use_container_width=True)
 
         st.markdown("---")
         st.markdown(
@@ -213,5 +206,3 @@ if uploaded_file is not None:
             """,
             unsafe_allow_html=True
         )
-
-
