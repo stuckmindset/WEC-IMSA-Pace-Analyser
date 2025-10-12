@@ -83,8 +83,8 @@ if uploaded_files:
 
         # Calculate session time range (only if single file)
         if len(uploaded_files) == 1:
-            session_start_hour = max(0, math.floor(df["elapsed_hours"].min()))
-            elapsed_hours_sorted = df["elapsed_hours"].sort_values()
+            session_start_hour = max(0, math.floor(df["elapsed_"].min()))
+            elapsed__sorted = df["elapsed_hours"].sort_values()
             max_full_hour = math.floor(elapsed_hours_sorted.max())
             laps_beyond_next = sum(elapsed_hours_sorted > (max_full_hour + 1))
             if laps_beyond_next >= 2:
@@ -93,7 +93,7 @@ if uploaded_files:
                 max_elapsed_hour = max_full_hour
         
             hour_range = st.slider(
-                "Session time window (hours)",
+                "Session time window (h)",
                 min_value=float(session_start_hour),
                 max_value=float(max_elapsed_hour),
                 value=(float(session_start_hour), float(max_elapsed_hour)),
@@ -207,10 +207,11 @@ if uploaded_files:
             *This app should not be used to accurately assess car or driver performance.  
             There are numerous variables in a race that are not reflected in the dataset,  
             such as damage, strategy, weather and so on. It's important to watch the races  
-            or read detailed reports to understand the full context behind the results.*
+            or read detailed reports to understand the full context behind the results shown here.*
             """,
             unsafe_allow_html=True
         )
+
 
 
 
