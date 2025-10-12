@@ -93,7 +93,7 @@ if uploaded_files:
                 max_elapsed_hour = max_full_hour
         
             hour_range = st.slider(
-                "Session time window (h)",
+                "Session time window (hours)",
                 min_value=float(session_start_hour),
                 max_value=float(max_elapsed_hour),
                 value=(float(session_start_hour), float(max_elapsed_hour)),
@@ -211,6 +211,7 @@ if uploaded_files:
             """,
             unsafe_allow_html=True
         )
+
 
 
 
