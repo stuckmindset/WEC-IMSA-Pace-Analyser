@@ -207,10 +207,11 @@ if uploaded_files:
             *This app should not be used to accurately assess car or driver performance.  
             There are numerous variables in a race that are not reflected in the dataset,  
             such as damage, strategy, weather and so on. It's important to watch the races  
-            or read detailed reports to understand the full context behind the results shown here.*
+            or read detailed reports to understand the full context behind the results.*
             """,
             unsafe_allow_html=True
         )
+
 
 
 
