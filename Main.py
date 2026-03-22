@@ -8,7 +8,9 @@ st.title("WEC/IMSA Pace Analyser")
 uploaded_files = st.file_uploader("Upload one or more CSV files", type="csv", accept_multiple_files=True)
 
 if uploaded_files:
+
     dfs = []
+
     for file in uploaded_files:
         try:
             df_part = pd.read_csv(file, sep=';', engine='python', header=0, dtype=str)
@@ -17,21 +19,24 @@ if uploaded_files:
         except Exception as e:
             st.error(f"Failed to read {file.name}: {e}")
 
-    # Merge all CSVs
     df = pd.concat(dfs, ignore_index=True)
 
     required_cols = [
         "NUMBER", "LAP_TIME", "CLASS", "MANUFACTURER", "ELAPSED",
         "DRIVER_NAME", "TEAM", "TOP_SPEED", "CROSSING_FINISH_LINE_IN_PIT", "LAP_NUMBER"
     ]
+
     missing_cols = [c for c in required_cols if c not in df.columns]
+
     if missing_cols:
         st.error(f"Missing required column(s): {', '.join(missing_cols)}")
+
     else:
+
         df = df[required_cols]
 
-        # Parse lap times into seconds
         time_re = re.compile(r"(\d+):(\d{2}\.\d+)")
+
         def parse_time_to_seconds(t):
             if pd.isna(t) or t == '':
                 return None
@@ -39,10 +44,11 @@ if uploaded_files:
             if not m:
                 return None
             return int(m.group(1)) * 60 + float(m.group(2))
+
         df["lap_seconds"] = df["LAP_TIME"].apply(parse_time_to_seconds)
 
-        # Parse elapsed time into hours
         elapsed_re = re.compile(r"(?:(\d+):)?(\d{1,2}):(\d{2}\.\d+)")
+
         def parse_elapsed_to_hours(t):
             if pd.isna(t) or t == '':
                 return None
@@ -53,19 +59,20 @@ if uploaded_files:
             minutes = int(m.group(2))
             seconds = float(m.group(3))
             return hours + (minutes / 60) + (seconds / 3600)
+
         df["elapsed_hours"] = df["ELAPSED"].apply(parse_elapsed_to_hours)
 
-        # Convert numeric fields
         df["TOP_SPEED"] = pd.to_numeric(df["TOP_SPEED"], errors='coerce')
         df["LAP_NUMBER"] = pd.to_numeric(df["LAP_NUMBER"], errors='coerce')
 
-        # Class selector
         available_classes = df["CLASS"].dropna().unique()
+
         target_class = st.selectbox("Select car class", options=available_classes)
 
-        # Car selection
         cars_in_class = df[df["CLASS"].str.upper() == str(target_class).upper()]["NUMBER"].dropna().unique()
+
         cars_in_class_sorted = sorted(cars_in_class, key=lambda x: int(re.sub(r"\D", "", x)))
+
         with st.expander("Cars"):
             selected_cars = st.multiselect(
                 "Select Cars",
@@ -73,23 +80,26 @@ if uploaded_files:
                 default=cars_in_class_sorted,
                 help="Here you can exclude cars from the analysis."
             )
+
         df = df[df["NUMBER"].isin(selected_cars)]
 
-        # Top % laps
         target_percent = st.slider(
             "Top % laps", 0.1, 0.7, 0.6, 0.05,
             help="Lower values will filter only the fastest laps. Higher values show a more representative stint average."
         )
 
-        # Calculate session time range
         session_start_hour = max(0, math.floor(df["elapsed_hours"].min()))
+
         elapsed_hours_sorted = df["elapsed_hours"].sort_values()
         max_full_hour = math.floor(elapsed_hours_sorted.max())
+
         laps_beyond_next = sum(elapsed_hours_sorted > (max_full_hour + 1))
+
         if laps_beyond_next >= 2:
             max_elapsed_hour = max_full_hour + 1
         else:
             max_elapsed_hour = max_full_hour
+
         hour_range = st.slider(
             "Session time window (hours)",
             min_value=float(session_start_hour),
@@ -100,40 +110,49 @@ if uploaded_files:
             help="Restrict the analysis to a certain portion of the session."
         )
 
-        # Filter hours
         df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
 
-        # Laptime delta
         max_delta = st.number_input(
             "Laptime range (s)",
             min_value=0,
             value=0,
             help="Maximum allowed delta from the car's fastest lap. Laps outside this range will be ignored."
         )
+
         if max_delta == 0:
             max_delta = None
 
         avg_by_manufacturer = st.checkbox("Manufacturer average")
         avg_by_driver = st.checkbox("Individual driver performance")
 
-        # Clean class & pit filter
         df["CLASS_clean"] = df["CLASS"].astype(str).str.upper().str.strip()
+
         mask_class = df["CLASS_clean"] == str(target_class).upper()
         mask_no_pit = ~(df["CROSSING_FINISH_LINE_IN_PIT"].astype(str).str.upper().str.strip() == "B")
         mask_not_first_lap = df["LAP_NUMBER"] > 1
+
         df_class = df[mask_class & mask_no_pit & mask_not_first_lap].copy()
 
         results = []
 
         def process_subset(subset, entity_name, car_name, team_name, manufacturer_name):
+
             subset_sorted = subset.sort_values("lap_seconds")
+
             cutoff = max(1, int(len(subset_sorted) * target_percent))
+
             best_times_idx = subset_sorted.index[:cutoff]
+
             best_times = subset_sorted.loc[best_times_idx, "lap_seconds"].to_list()
 
             if max_delta is not None and len(best_times) > 0:
                 best_lap = min(best_times)
-                filtered_idx = [i for i in best_times_idx if subset_sorted.loc[i, "lap_seconds"] <= best_lap + max_delta]
+
+                filtered_idx = [
+                    i for i in best_times_idx
+                    if subset_sorted.loc[i, "lap_seconds"] <= best_lap + max_delta
+                ]
+
                 best_times_idx = filtered_idx
                 best_times = subset_sorted.loc[best_times_idx, "lap_seconds"].to_list()
 
@@ -150,11 +169,15 @@ if uploaded_files:
                 }
 
             avg = sum(best_times) / len(best_times)
+
             avg_str = f"{int(avg // 60)}:{avg % 60:06.3f}"
+
             avg_top_speed = subset_sorted.loc[best_times_idx, "TOP_SPEED"].mean()
-            best_top_speed = subset_sorted.loc[best_times_idx, "TOP_SPEED"].max()
-            
+
             avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
+
+            best_top_speed = subset_sorted.loc[best_times_idx, "TOP_SPEED"].max()
+
             best_top_speed_str = f"{best_top_speed:.1f}" if not pd.isna(best_top_speed) else "N/A"
 
             return {
@@ -169,36 +192,60 @@ if uploaded_files:
             }
 
         if avg_by_driver:
+
             for driver in df_class["DRIVER_NAME"].dropna().unique():
+
                 subset = df_class[df_class["DRIVER_NAME"] == driver]
+
                 if len(subset) == 0:
                     continue
+
                 car = subset["NUMBER"].iloc[0]
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
+
                 results.append(process_subset(subset, driver, car, team, manufacturer))
+
         elif avg_by_manufacturer:
+
             for mfr in df_class["MANUFACTURER"].dropna().unique():
+
                 subset = df_class[df_class["MANUFACTURER"] == mfr]
+
                 if len(subset) == 0:
                     continue
+
                 results.append(process_subset(subset, "All", "Multiple", "Multiple", mfr))
+
         else:
+
             for car in sorted(df_class["NUMBER"].dropna().unique(), key=lambda x: int(re.sub(r"\D", "", x))):
+
                 subset = df_class[df_class["NUMBER"] == car]
+
                 if len(subset) == 0:
                     continue
+
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
+
                 results.append(process_subset(subset, "All", car, team, manufacturer))
 
         styled_df = pd.DataFrame(results)[[
-            "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed", "Best Top Speed"
+            "Car",
+            "Team",
+            "Manufacturer",
+            "Driver(s)",
+            "Average Lap Time",
+            "Valid Laps",
+            "Average Top Speed",
+            "Best Top Speed"
         ]].reset_index(drop=True)
 
         st.dataframe(styled_df, use_container_width=True)
 
         st.markdown("---")
+
         st.markdown(
             """
             **Disclaimer**:  
