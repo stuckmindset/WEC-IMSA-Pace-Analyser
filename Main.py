@@ -151,7 +151,9 @@ if uploaded_files:
             avg = sum(best_times) / len(best_times)
             avg_str = f"{int(avg // 60)}:{avg % 60:06.3f}"
             avg_top_speed = subset_sorted.loc[best_times_idx, "TOP_SPEED"].mean()
+            best_top_speed = subset_sorted.loc[best_times_idx, "TOP_SPEED"].max()            
             avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
+            best_top_speed_str = f"{best_top_speed:.1f}" if not pd.isna(best_top_speed) else "N/A"
 
             return {
                 "Driver(s)": entity_name,
@@ -160,7 +162,8 @@ if uploaded_files:
                 "Manufacturer": manufacturer_name,
                 "Average Lap Time": avg_str,
                 "Valid Laps": len(best_times),
-                "Average Top Speed": avg_top_speed_str
+                "Average Top Speed": avg_top_speed_str,
+                "Best Top Speed": best_top_speed_str
             }
 
         if avg_by_driver:
@@ -188,7 +191,7 @@ if uploaded_files:
                 results.append(process_subset(subset, "All", car, team, manufacturer))
 
         styled_df = pd.DataFrame(results)[[
-            "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed"
+            "Car", "Team", "Manufacturer", "Driver(s)", "Average Lap Time", "Valid Laps", "Average Top Speed", "Best Top Speed"
         ]].reset_index(drop=True)
 
         st.dataframe(styled_df, use_container_width=True)
