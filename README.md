@@ -8,7 +8,7 @@ Features
 
 - Class Selection: analyse only a chosen car class.
 - Car Selection: Focus on specific cars within the class.
-- Time Filter: Restrict analysis to laps within a specific race time window.
+- Time Filter: Restrict analysis to laps within a specific race time window
 - Top % Laps: Compute averages using only the fastest portion of laps.
 - Maximum Delta: Ignore laps that are too far from the fastest lap.
 - Individual Driver Performance: Break down averages by driver.
