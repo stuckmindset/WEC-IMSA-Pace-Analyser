@@ -163,7 +163,7 @@ if uploaded_files:
                     "Team": team_name,
                     "Manufacturer": manufacturer_name,
                     "Average Lap Time": f"N/A (> {max_delta}s)" if max_delta else "N/A",
-                    "Valid Laps": 0,
+                    "Computed Laps": 0,
                     "Average Top Speed": "N/A",
                     "Best Top Speed": "N/A"
                 }
@@ -186,7 +186,7 @@ if uploaded_files:
                 "Team": team_name,
                 "Manufacturer": manufacturer_name,
                 "Average Lap Time": avg_str,
-                "Valid Laps": len(best_times),
+                "Computed Laps": len(best_times),
                 "Average Top Speed": avg_top_speed_str,
                 "Best Top Speed": best_top_speed_str
             }
@@ -237,7 +237,7 @@ if uploaded_files:
             "Manufacturer",
             "Driver(s)",
             "Average Lap Time",
-            "Valid Laps",
+            "Computed Laps",
             "Average Top Speed",
             "Best Top Speed"
         ]].reset_index(drop=True)
