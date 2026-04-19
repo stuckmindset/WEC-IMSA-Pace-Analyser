@@ -1,4 +1,4 @@
-import streamlit as st
+    import streamlit as st
 import pandas as pd
 import re
 import math
@@ -22,8 +22,8 @@ if uploaded_files:
     df = pd.concat(dfs, ignore_index=True)
 
     required_cols = [
-        "NUMBER", "LAP_TIME", "CLASS", "MANUFACTURER", "ELAPSED",
-        "DRIVER_NAME", "TEAM", "TOP_SPEED", "CROSSING_FINISH_LINE_IN_PIT", "LAP_NUMBER"
+        "NUMBER","LAP_TIME","CLASS","MANUFACTURER","ELAPSED",
+        "DRIVER_NAME","TEAM","TOP_SPEED","CROSSING_FINISH_LINE_IN_PIT","LAP_NUMBER"
     ]
 
     missing_cols = [c for c in required_cols if c not in df.columns]
@@ -43,7 +43,7 @@ if uploaded_files:
             m = time_re.search(str(t).strip())
             if not m:
                 return None
-            return int(m.group(1)) * 60 + float(m.group(2))
+            return int(m.group(1))*60 + float(m.group(2))
 
         df["lap_seconds"] = df["LAP_TIME"].apply(parse_time_to_seconds)
 
@@ -58,7 +58,7 @@ if uploaded_files:
             hours = int(m.group(1)) if m.group(1) else 0
             minutes = int(m.group(2))
             seconds = float(m.group(3))
-            return hours + (minutes / 60) + (seconds / 3600)
+            return hours + minutes/60 + seconds/3600
 
         df["elapsed_hours"] = df["ELAPSED"].apply(parse_elapsed_to_hours)
 
@@ -69,9 +69,9 @@ if uploaded_files:
 
         target_class = st.selectbox("Select car class", options=available_classes)
 
-        cars_in_class = df[df["CLASS"].str.upper() == str(target_class).upper()]["NUMBER"].dropna().unique()
+        cars_in_class = df[df["CLASS"].str.upper()==str(target_class).upper()]["NUMBER"].dropna().unique()
 
-        cars_in_class_sorted = sorted(cars_in_class, key=lambda x: int(re.sub(r"\D", "", x)))
+        cars_in_class_sorted = sorted(cars_in_class, key=lambda x: int(re.sub(r"\D","",x)))
 
         with st.expander("Cars"):
             selected_cars = st.multiselect(
@@ -84,19 +84,20 @@ if uploaded_files:
         df = df[df["NUMBER"].isin(selected_cars)]
 
         target_percent = st.slider(
-            "Top % laps", 0.1, 0.7, 0.6, 0.05,
-            help="Lower values will filter only the fastest laps. Higher values show a more representative stint average."
+            "Top % laps",0.1,0.7,0.6,0.05,
+            help="Lower values filter only the fastest laps."
         )
 
-        session_start_hour = max(0, math.floor(df["elapsed_hours"].min()))
+        session_start_hour = max(0,math.floor(df["elapsed_hours"].min()))
 
         elapsed_hours_sorted = df["elapsed_hours"].sort_values()
+
         max_full_hour = math.floor(elapsed_hours_sorted.max())
 
-        laps_beyond_next = sum(elapsed_hours_sorted > (max_full_hour + 1))
+        laps_beyond_next = sum(elapsed_hours_sorted>(max_full_hour+1))
 
-        if laps_beyond_next >= 2:
-            max_elapsed_hour = max_full_hour + 1
+        if laps_beyond_next>=2:
+            max_elapsed_hour = max_full_hour+1
         else:
             max_elapsed_hour = max_full_hour
 
@@ -104,132 +105,137 @@ if uploaded_files:
             "Session time window (hours)",
             min_value=float(session_start_hour),
             max_value=float(max_elapsed_hour),
-            value=(float(session_start_hour), float(max_elapsed_hour)),
+            value=(float(session_start_hour),float(max_elapsed_hour)),
             step=0.5,
-            format="%.1f",
-            help="Restrict the analysis to a certain portion of the session."
+            format="%.1f"
         )
 
-        df = df[(df["elapsed_hours"] >= hour_range[0]) & (df["elapsed_hours"] <= hour_range[1])]
+        df_time_filtered = df[(df["elapsed_hours"]>=hour_range[0]) & (df["elapsed_hours"]<=hour_range[1])]
 
         max_delta = st.number_input(
             "Laptime range (s)",
             min_value=0,
             value=0,
-            help="Maximum allowed delta from the car's fastest lap. Laps outside this range will be ignored."
+            help="Maximum allowed delta from fastest lap"
         )
 
-        if max_delta == 0:
-            max_delta = None
+        if max_delta==0:
+            max_delta=None
 
         avg_by_manufacturer = st.checkbox("Manufacturer average")
         avg_by_driver = st.checkbox("Individual driver performance")
 
         df["CLASS_clean"] = df["CLASS"].astype(str).str.upper().str.strip()
 
-        mask_class = df["CLASS_clean"] == str(target_class).upper()
-        mask_no_pit = ~(df["CROSSING_FINISH_LINE_IN_PIT"].astype(str).str.upper().str.strip() == "B")
-        mask_not_first_lap = df["LAP_NUMBER"] > 1
+        mask_class = df["CLASS_clean"]==str(target_class).upper()
+        mask_no_pit = ~(df["CROSSING_FINISH_LINE_IN_PIT"].astype(str).str.upper().str.strip()=="B")
+        mask_not_first_lap = df["LAP_NUMBER"]>1
 
-        df_class = df[mask_class & mask_no_pit & mask_not_first_lap].copy()
+        df_full_session = df[mask_class & mask_no_pit & mask_not_first_lap].copy()
+
+        df_class = df_time_filtered[
+            (df_time_filtered["CLASS"].str.upper()==str(target_class).upper()) &
+            ~(df_time_filtered["CROSSING_FINISH_LINE_IN_PIT"].astype(str).str.upper()=="B") &
+            (df_time_filtered["LAP_NUMBER"]>1)
+        ].copy()
 
         results = []
 
-        def process_subset(subset, entity_name, car_name, team_name, manufacturer_name):
+        def process_subset(subset, full_subset, entity_name, car_name, team_name, manufacturer_name):
 
             subset_sorted = subset.sort_values("lap_seconds")
 
-            cutoff = max(1, int(len(subset_sorted) * target_percent))
+            cutoff = max(1,int(len(subset_sorted)*target_percent))
 
-            best_times_idx = subset_sorted.index[:cutoff]
+            best_idx = subset_sorted.index[:cutoff]
 
-            best_times = subset_sorted.loc[best_times_idx, "lap_seconds"].to_list()
+            best_times = subset_sorted.loc[best_idx,"lap_seconds"].to_list()
 
-            if max_delta is not None and len(best_times) > 0:
+            if max_delta is not None and len(best_times)>0:
                 best_lap = min(best_times)
+                best_idx = [i for i in best_idx if subset_sorted.loc[i,"lap_seconds"]<=best_lap+max_delta]
+                best_times = subset_sorted.loc[best_idx,"lap_seconds"].to_list()
 
-                filtered_idx = [
-                    i for i in best_times_idx
-                    if subset_sorted.loc[i, "lap_seconds"] <= best_lap + max_delta
-                ]
-
-                best_times_idx = filtered_idx
-                best_times = subset_sorted.loc[best_times_idx, "lap_seconds"].to_list()
-
-            if len(best_times) == 0:
+            if len(best_times)==0:
                 return {
-                    "Driver(s)": entity_name,
-                    "Car": car_name,
-                    "Team": team_name,
-                    "Manufacturer": manufacturer_name,
-                    "Average Lap Time": f"N/A (> {max_delta}s)" if max_delta else "N/A",
-                    "Computed Laps": 0,
-                    "Average Top Speed": "N/A",
-                    "Best Top Speed": "N/A"
+                    "Driver(s)":entity_name,
+                    "Car":car_name,
+                    "Team":team_name,
+                    "Manufacturer":manufacturer_name,
+                    "Average Lap Time":"N/A",
+                    "Valid Laps":0,
+                    "Average Top Speed":"N/A",
+                    "Best Top Speed":"N/A"
                 }
 
-            avg = sum(best_times) / len(best_times)
+            avg = sum(best_times)/len(best_times)
 
-            avg_str = f"{int(avg // 60)}:{avg % 60:06.3f}"
+            avg_str = f"{int(avg//60)}:{avg%60:06.3f}"
 
-            avg_top_speed = subset_sorted.loc[best_times_idx, "TOP_SPEED"].mean()
+            avg_top_speed = subset_sorted.loc[best_idx,"TOP_SPEED"].mean()
 
             avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
 
-            best_top_speed = subset_sorted.loc[best_times_idx, "TOP_SPEED"].max()
+            best_top_speed = full_subset["TOP_SPEED"].max()
 
             best_top_speed_str = f"{best_top_speed:.1f}" if not pd.isna(best_top_speed) else "N/A"
 
             return {
-                "Driver(s)": entity_name,
-                "Car": car_name,
-                "Team": team_name,
-                "Manufacturer": manufacturer_name,
-                "Average Lap Time": avg_str,
-                "Computed Laps": len(best_times),
-                "Average Top Speed": avg_top_speed_str,
-                "Best Top Speed": best_top_speed_str
+                "Driver(s)":entity_name,
+                "Car":car_name,
+                "Team":team_name,
+                "Manufacturer":manufacturer_name,
+                "Average Lap Time":avg_str,
+                "Valid Laps":len(best_times),
+                "Average Top Speed":avg_top_speed_str,
+                "Best Top Speed":best_top_speed_str
             }
 
         if avg_by_driver:
 
             for driver in df_class["DRIVER_NAME"].dropna().unique():
 
-                subset = df_class[df_class["DRIVER_NAME"] == driver]
+                subset = df_class[df_class["DRIVER_NAME"]==driver]
 
-                if len(subset) == 0:
+                full_subset = df_full_session[df_full_session["DRIVER_NAME"]==driver]
+
+                if len(subset)==0:
                     continue
 
                 car = subset["NUMBER"].iloc[0]
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
 
-                results.append(process_subset(subset, driver, car, team, manufacturer))
+                results.append(process_subset(subset,full_subset,driver,car,team,manufacturer))
 
         elif avg_by_manufacturer:
 
             for mfr in df_class["MANUFACTURER"].dropna().unique():
 
-                subset = df_class[df_class["MANUFACTURER"] == mfr]
+                subset = df_class[df_class["MANUFACTURER"]==mfr]
 
-                if len(subset) == 0:
+                full_subset = df_full_session[df_full_session["MANUFACTURER"]==mfr]
+
+                if len(subset)==0:
                     continue
 
-                results.append(process_subset(subset, "All", "Multiple", "Multiple", mfr))
+                results.append(process_subset(subset,full_subset,"All","Multiple","Multiple",mfr))
 
         else:
 
-            for car in sorted(df_class["NUMBER"].dropna().unique(), key=lambda x: int(re.sub(r"\D", "", x))):
+            for car in sorted(df_class["NUMBER"].dropna().unique(), key=lambda x:int(re.sub(r"\D","",x))):
 
-                subset = df_class[df_class["NUMBER"] == car]
+                subset = df_class[df_class["NUMBER"]==car]
 
-                if len(subset) == 0:
+                full_subset = df_full_session[df_full_session["NUMBER"]==car]
+
+                if len(subset)==0:
                     continue
 
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
 
-                results.append(process_subset(subset, "All", car, team, manufacturer))
+                results.append(process_subset(subset,full_subset,"All",car,team,manufacturer))
 
         styled_df = pd.DataFrame(results)[[
             "Car",
@@ -237,7 +243,7 @@ if uploaded_files:
             "Manufacturer",
             "Driver(s)",
             "Average Lap Time",
-            "Computed Laps",
+            "Valid Laps",
             "Average Top Speed",
             "Best Top Speed"
         ]].reset_index(drop=True)
@@ -254,7 +260,7 @@ if uploaded_files:
             such as damage, tyre/fuel strategy, weather and so on. It's important to watch the races  
             or read detailed reports to understand the full context behind the results shown here.
             
-            AI was used to create this app*
+            AI was used to create this app.*
             """,
             unsafe_allow_html=True
         )
