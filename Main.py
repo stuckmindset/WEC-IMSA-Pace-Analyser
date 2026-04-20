@@ -77,15 +77,20 @@ if uploaded_files:
             selected_cars = st.multiselect(
                 "Select Cars",
                 options=cars_in_class_sorted,
-                default=cars_in_class_sorted,
-                help="Here you can exclude cars from the analysis."
+                default=cars_in_class_sorted
             )
 
         df = df[df["NUMBER"].isin(selected_cars)]
 
-        target_percent = st.slider(
-            "Top % laps",0.1,0.7,0.6,0.05,
-            help="Lower values filter only the fastest laps."
+        target_percent = st.slider("Top % laps",0.1,0.7,0.6,0.05)
+
+        delta_percent = st.number_input(
+            "Delta Filter (%)",
+            min_value=100,
+            max_value=130,
+            value=110,
+            step=1,
+            help="Keep laps within this percentage of the car's fastest lap."
         )
 
         session_start_hour = max(0,math.floor(df["elapsed_hours"].min()))
@@ -112,16 +117,6 @@ if uploaded_files:
 
         df_time_filtered = df[(df["elapsed_hours"]>=hour_range[0]) & (df["elapsed_hours"]<=hour_range[1])]
 
-        max_delta = st.number_input(
-            "Laptime range (s)",
-            min_value=0,
-            value=0,
-            help="Maximum allowed delta from fastest lap"
-        )
-
-        if max_delta==0:
-            max_delta=None
-
         avg_by_manufacturer = st.checkbox("Manufacturer average")
         avg_by_driver = st.checkbox("Individual driver performance")
 
@@ -141,54 +136,44 @@ if uploaded_files:
 
         results = []
 
+        def format_lap(sec):
+            return f"{int(sec//60)}:{sec%60:06.3f}"
+
         def process_subset(subset, full_subset, entity_name, car_name, team_name, manufacturer_name):
+
+            fastest_lap = subset["lap_seconds"].min()
+
+            if pd.isna(fastest_lap):
+                return None
+
+            cutoff_time = fastest_lap * (delta_percent/100)
+
+            subset = subset[subset["lap_seconds"] <= cutoff_time]
 
             subset_sorted = subset.sort_values("lap_seconds")
 
             cutoff = max(1,int(len(subset_sorted)*target_percent))
 
-            best_idx = subset_sorted.index[:cutoff]
+            best_subset = subset_sorted.head(cutoff)
 
-            best_times = subset_sorted.loc[best_idx,"lap_seconds"].to_list()
-
-            if max_delta is not None and len(best_times)>0:
-                best_lap = min(best_times)
-                best_idx = [i for i in best_idx if subset_sorted.loc[i,"lap_seconds"]<=best_lap+max_delta]
-                best_times = subset_sorted.loc[best_idx,"lap_seconds"].to_list()
-
-            if len(best_times)==0:
-                return {
-                    "Driver(s)":entity_name,
-                    "Car":car_name,
-                    "Team":team_name,
-                    "Manufacturer":manufacturer_name,
-                    "Average Lap Time":"N/A",
-                    "Computed Laps":0,
-                    "Average Top Speed":"N/A",
-                    "Best Top Speed":"N/A"
-                }
+            best_times = best_subset["lap_seconds"].to_list()
 
             avg = sum(best_times)/len(best_times)
 
-            avg_str = f"{int(avg//60)}:{avg%60:06.3f}"
-
-            avg_top_speed = subset_sorted.loc[best_idx,"TOP_SPEED"].mean()
-
-            avg_top_speed_str = f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A"
+            avg_top_speed = best_subset["TOP_SPEED"].mean()
 
             best_top_speed = full_subset["TOP_SPEED"].max()
-
-            best_top_speed_str = f"{best_top_speed:.1f}" if not pd.isna(best_top_speed) else "N/A"
 
             return {
                 "Driver(s)":entity_name,
                 "Car":car_name,
                 "Team":team_name,
                 "Manufacturer":manufacturer_name,
-                "Average Lap Time":avg_str,
+                "Fastest Lap":format_lap(fastest_lap),
+                "Average Lap Time":format_lap(avg),
                 "Computed Laps":len(best_times),
-                "Average Top Speed":avg_top_speed_str,
-                "Best Top Speed":best_top_speed_str
+                "Average Top Speed":f"{avg_top_speed:.1f}" if not pd.isna(avg_top_speed) else "N/A",
+                "Best Top Speed":f"{best_top_speed:.1f}" if not pd.isna(best_top_speed) else "N/A"
             }
 
         if avg_by_driver:
@@ -242,6 +227,7 @@ if uploaded_files:
             "Team",
             "Manufacturer",
             "Driver(s)",
+            "Fastest Lap",
             "Average Lap Time",
             "Computed Laps",
             "Average Top Speed",
@@ -258,8 +244,8 @@ if uploaded_files:
             *This app should not be used to accurately assess car or driver performance.  
             There are numerous variables in a race that are not reflected in the dataset,  
             such as damage, tyre/fuel strategy, weather and so on. It's important to watch the races  
-            or read detailed reports to understand the full context behind the results shown here.
-            
+            or read detailed reports to understand the full context behind the results shown here.  
+
             AI was used to create this app.*
             """,
             unsafe_allow_html=True
