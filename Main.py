@@ -219,9 +219,17 @@ if uploaded_files:
                 if len(subset)==0:
                     continue
 
-                # Get all drivers for this manufacturer
+                # Get all drivers for this manufacturer and format names
                 drivers_list = df_class[df_class["MANUFACTURER"]==mfr]["DRIVER_NAME"].dropna().unique()
-                driver_names = ", ".join(drivers_list) if len(drivers_list) > 0 else "All"
+                formatted_drivers = []
+                for name in drivers_list:
+                    parts = name.split()
+                    if len(parts) >= 2:
+                        formatted_name = f"{parts[0][0]}. {parts[-1]}"
+                    else:
+                        formatted_name = name
+                    formatted_drivers.append(formatted_name)
+                driver_names = ", ".join(formatted_drivers) if len(formatted_drivers) > 0 else "All"
 
                 results.append(process_subset(subset,full_subset,driver_names,"Multiple","Multiple",mfr))
 
@@ -239,9 +247,17 @@ if uploaded_files:
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
                 
-                # Get all drivers for this car
+                # Get all drivers for this car and format names
                 drivers_list = df_class[df_class["NUMBER"]==car]["DRIVER_NAME"].dropna().unique()
-                driver_names = ", ".join(drivers_list) if len(drivers_list) > 0 else "All"
+                formatted_drivers = []
+                for name in drivers_list:
+                    parts = name.split()
+                    if len(parts) >= 2:
+                        formatted_name = f"{parts[0][0]}. {parts[-1]}"
+                    else:
+                        formatted_name = name
+                    formatted_drivers.append(formatted_name)
+                driver_names = ", ".join(formatted_drivers) if len(formatted_drivers) > 0 else "All"
 
                 results.append(process_subset(subset,full_subset,driver_names,car,team,manufacturer))
 
