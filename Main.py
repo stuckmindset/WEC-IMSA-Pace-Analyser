@@ -219,7 +219,11 @@ if uploaded_files:
                 if len(subset)==0:
                     continue
 
-                results.append(process_subset(subset,full_subset,"All","Multiple","Multiple",mfr))
+                # Get all drivers for this manufacturer
+                drivers_list = df_class[df_class["MANUFACTURER"]==mfr]["DRIVER_NAME"].dropna().unique()
+                driver_names = ", ".join(drivers_list) if len(drivers_list) > 0 else "All"
+
+                results.append(process_subset(subset,full_subset,driver_names,"Multiple","Multiple",mfr))
 
         else:
 
@@ -234,8 +238,12 @@ if uploaded_files:
 
                 team = subset["TEAM"].iloc[0]
                 manufacturer = subset["MANUFACTURER"].iloc[0]
+                
+                # Get all drivers for this car
+                drivers_list = df_class[df_class["NUMBER"]==car]["DRIVER_NAME"].dropna().unique()
+                driver_names = ", ".join(drivers_list) if len(drivers_list) > 0 else "All"
 
-                results.append(process_subset(subset,full_subset,"All",car,team,manufacturer))
+                results.append(process_subset(subset,full_subset,driver_names,car,team,manufacturer))
 
         styled_df = pd.DataFrame(results)[[
             "Car",
