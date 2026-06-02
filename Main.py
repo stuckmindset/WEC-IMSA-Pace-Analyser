@@ -225,7 +225,7 @@ if uploaded_files:
                 for name in drivers_list:
                     parts = name.split()
                     if len(parts) >= 2:
-                        formatted_name = f"{parts[0][0]}. {parts[-1]}"
+                        formatted_name = f"{parts[0][0]}. {parts[-1].capitalize()}"
                     else:
                         formatted_name = name
                     formatted_drivers.append(formatted_name)
@@ -253,7 +253,7 @@ if uploaded_files:
                 for name in drivers_list:
                     parts = name.split()
                     if len(parts) >= 2:
-                        formatted_name = f"{parts[0][0]}. {parts[-1]}"
+                        formatted_name = f"{parts[0][0]}. {parts[-1].capitalize()}"
                     else:
                         formatted_name = name
                     formatted_drivers.append(formatted_name)
